@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from src.ast_nodes import *
+
 
 @dataclass
 class NFAState:
@@ -45,6 +47,69 @@ class NFA:
             
         return result
 
+
+def ast_to_nfa(ast: RegexAST) -> NFA:
+    counter = [0]
+    nfa = NFA(
+        states = [],
+        alphabet=[],
+        transitions={},
+        start = 0,
+        accept_states=[]
+    )
+
+    def new_state_id():
+        id = counter[0]
+        counter[0] += 1
+        return id
+    
+    
+    #returns (start_id, accept_id)
+    def build(node) -> tuple[int,int]: 
+        match node:
+            case Char(c):
+                s1 = new_state_id()
+                s2 = new_state_id()
+                nfa.add_transition(s1,c,s2)
+                return (s1,s2)
+            case Concat(left, right):
+                left_start, left_accept = build(left)
+                right_start, right_accept = build(right)
+                nfa.add_transition(left_accept, None, right_start)
+                return (left_start, right_accept)
+            case Union(left, right):
+                left_start, left_accept = build(left)
+                right_start, right_accept = build(right)
+                new_start_state = new_state_id()
+                new_accept_state = new_state_id()
+                nfa.add_transition(new_start_state, None, left_start)
+                nfa.add_transition(new_start_state, None, right_start)
+                nfa.add_transition(right_accept, None, new_accept_state)
+                nfa.add_transition(left_accept, None, new_accept_state)
+                return (new_start_state, new_accept_state)
+            case Star(inner):
+                inner_start, inner_accept = build(inner)
+                new_start_state = new_state_id()
+                new_accept_state = new_state_id()
+                nfa.add_transition(new_start_state, None, inner_start)
+                nfa.add_transition(inner_accept, None, inner_start)
+                nfa.add_transition(new_start_state, None, new_accept_state)
+                nfa.add_transition(inner_accept, None, new_accept_state)
+                return (new_start_state, new_accept_state)
+            case Plus(x):
+                return build(Concat(x, Star(x)))
+            case Optional(x):
+                return build(Union(x, Epsilon()))
+            case Epsilon():
+                s1 = new_state_id()
+                s2 = new_state_id()
+                nfa.add_transition(s1, None, s2)
+                return (s1, s2)
+
+    start, accept = build(ast)
+    nfa.start = start
+    nfa.accept_states = [accept]
+    return nfa
 
 
 
