@@ -1,4 +1,18 @@
 # string matching
+from src.lexer import tokenize
+from src.parser import parse
+from src.nfa import ast_to_nfa
+from src.dfa import nfa_to_dfa
+
+
+def regex_match(pattern, string):
+    tokens = tokenize(pattern)
+    ast = parse(tokens)
+    nfa = ast_to_nfa(ast)
+    dfa = nfa_to_dfa(nfa)
+    return match(dfa, string)
+
+
 def match(dfa, string):
     current = dfa.start
 
