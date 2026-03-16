@@ -66,7 +66,7 @@ def visualize_dfa(dfa, filename="dfa", view=True):
 
 
 def visualize_regex(pattern, filename=None, view=True):
-    """Visualize both NFA and DFA for a regex pattern."""
+    # Visualise both NFA and DFA for a regex pattern.
     tokens = tokenize(pattern)
     ast = parse(tokens)
     nfa = ast_to_nfa(ast)
