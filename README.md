@@ -141,5 +141,5 @@ I will present this as a poster at the BCSWomen Lovelace Colloquium 2026, Univer
 1. OWASP Foundation. [Regular expression Denial of Service - ReDoS](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
 2. Cox, R. (2007). [Regular Expression Matching Can Be Simple And Fast](https://swtch.com/~rsc/regexp/regexp1.html)
 3. Graham-Cumming, J. (2019). [Details of the Cloudflare outage on July 2, 2019](https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/). Cloudflare Blog.
-4. Thompson, K. (1968). "Programming Techniques: Regular expression search algorithm." *Communications of the ACM*, 11(6), 419-422.
-5. Rabin, M. O. and Scott, D. (1959). "Finite Automata and Their Decision Problems." *IBM Journal of Research and Development*, 3(2), 114-125.
+4. Thompson, K. (1968). ["Programming Techniques: Regular expression search algorithm."](https://dl.acm.org/doi/10.1145/363347.363387) *Communications of the ACM*, 11(6), 419-422.
+5. Rabin, M. O. and Scott, D. (1959). ["Finite Automata and Their Decision Problems."](https://dl.acm.org/doi/10.1147/rd.32.0114) *IBM Journal of Research and Development*, 3(2), 114-125.
