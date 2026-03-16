@@ -1,6 +1,6 @@
 # Regex Engine
 
-A regex engine built from scratch that compiles patterns into DFAs for guaranteed linear-time matching, because I had no idea where I could apply Thompson's construction irl when I learned about it in my lectures :). Immune to ReDoS [[1]](#references) by design, which is an added bonus I learned about through research [[2]](#references).
+A regex engine built from scratch that compiles patterns into deterministic finite automata (DFAs) for guaranteed linear-time matching, because I had no idea where I could apply Thompson's construction irl when I learned about it in my lectures :). Immune to ReDoS [[1]](#references) by design, which is an added bonus I learned about through research [[2]](#references).
 
 ## How to use this repo
 
