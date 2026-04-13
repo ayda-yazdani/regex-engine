@@ -28,6 +28,10 @@ regex_match("(a|b)*c", "aaabbbc")  # True
 regex_match("(a|b)*c", "aaabbb")   # False
 regex_match("a+b", "aaab")         # True
 regex_match("a?", "")              # True
+regex_match("a.b", "axb")          # True — dot matches any character
+regex_match("[a-z]+", "hello")     # True — character class with range
+regex_match("\\.", ".")            # True — escaped dot matches literal "."
+regex_match("\\.", "a")            # False
 ```
 
 ### Run tests
@@ -56,6 +60,10 @@ visualize_regex("(a|b)*c")  # generates NFA and DFA PNGs
 | `+` | Kleene plus | `a+` | "a", "aa", ... |
 | `?` | Optional | `a?` | "" or "a" |
 | `()` | Grouping | `(ab)*` | "", "ab", "abab", ... |
+| `.` | Wildcard | `a.b` | "aab", "axb", "a1b", ... |
+| `[abc]` | Character class | `[abc]+` | "a", "bca", "cab", ... |
+| `[a-z]` | Range | `[0-9]+` | "42", "100", ... |
+| `\` | Escape | `\*` | literal "*" |
 
 ## Overview
 
@@ -75,7 +83,7 @@ Why did I go through all this work? Well, once you have the DFA, matching is O(n
 ```
 src/
 ├── lexer.py        # tokenise regex string
-├── ast_nodes.py    # AST node definitions (Char, Concat, Union, Star, Plus, Optional, Epsilon)
+├── ast_nodes.py    # AST node definitions (Char, Concat, Union, Star, Plus, Optional, Dot, CharClass, Epsilon)
 ├── parser.py       # recursive descent parser
 ├── nfa.py          # NFA data structure + Thompson's construction
 ├── dfa.py          # DFA data structure + powerset construction
@@ -112,6 +120,10 @@ The `visited` dictionary maps frozensets to DFA states and serves two purposes: 
 
 The alphabet isn't tracked by `ast_to_nfa`, so I extract it from the NFA transition keys after construction: `{symbol for (_, symbol) in nfa.transitions if symbol is not None}`. Not elegant but it works.
 
+Wildcard (`.`) was the trickiest feature to add because the DFA needs to handle characters that aren't in the pattern's alphabet. The NFA uses a sentinel value (`DOT_SYMBOL`) for wildcard transitions. During powerset construction, DOT transitions piggyback on every concrete symbol's move, so `a.b` with alphabet `{a, b}` correctly computes DFA states where both 'a' and 'b' (and any other character) satisfy the dot. For characters not in the alphabet at all, the DFA stores a separate `default_transitions` dict that the matcher falls back to. This avoids needing to enumerate every possible character upfront.
+
+Character classes like `[abc]` are clean in the NFA: one start state, one accept state, and one transition per character in the class. NFA non-determinism handles the rest — `[abc]` gets three transitions from the same state on 'a', 'b', and 'c'. Ranges like `[a-z]` just expand into individual characters during parsing. Inside brackets, everything is a literal, so `[.*]` matches a literal dot and asterisk.
+
 DFA transitions map `(state_id, symbol)` to a single `int`, not a set. Deterministic means one destination per symbol per state, which I had to remind myself after I initially wrote `{to_state}` (a set) out of habit from the NFA code.
 
 The matcher is about 10 lines. Walk the DFA, follow one transition per character, reject if no transition exists, accept if you end in an accept state. All the complexity lives in construction, which is the entire argument for this approach over backtracking.
@@ -120,7 +132,9 @@ The matcher is about 10 lines. Walk the DFA, follow one transition per character
 
 The parser handles precedence through grammar structure rather than explicit precedence tables. The call hierarchy is `parse_regex → parse_union → parse_concat → parse_unary → parse_primary`, where lower in the call stack means higher precedence. So `ab*` naturally parses as `Concat(a, Star(b))` because `parse_unary` captures the `*` before `parse_concat` ever sees it. The call stack _is_ the precedence hierarchy.
 
-`parse_concat` doesn't check for union, it just stops when it hits a token it can't handle (anything that isn't CHAR or LPAREN). The caller (`parse_union`) picks up from there. Bascially, each grammar level only handles its own operators.
+`parse_concat` doesn't check for union, it just stops when it hits a token it can't handle (anything that isn't CHAR, LPAREN, DOT, or LBRACKET). The caller (`parse_union`) picks up from there. Bascially, each grammar level only handles its own operators.
+
+Escape sequences were the simplest addition. Switching the lexer from `for c in regex` to index-based `while i < len(regex)` means a backslash can just increment `i` and grab the next character as a literal CHAR token. The rest of the pipeline doesn't even know anything was escaped.
 
 For the visualiser, Graphviz draws left-to-right (`rankdir="LR"`). Accept states get `doublecircle` shape. DFA node labels include the NFA state set so you can trace the powerset construction visually. There's an invisible `point` node with an arrow into the start state, which is the standard automata diagram convention.
 
@@ -134,7 +148,7 @@ I did some reading and most regex engines use backtracking, which has exponentia
 
 A cool/motivating (?) example of where this is relevant is the Cloudflare outage of July 2019 [[3]](#references). One regex rule (`.*.*=.*`) in their Web Application Firewall triggered catastrophic backtracking across their entire global network, taking down millions of websites for 27 minutes. The funny thing in hindsight is that a Thompson-based engine would have made it impossible.
 
-I will present this as a poster at the BCSWomen Lovelace Colloquium 2026, University of Bath. Will upload the accompanying poster when it's complete!
+I presented this as a poster at the BCSWomen Lovelace Colloquium 2026, University of Bath.
 
 ## References
 
