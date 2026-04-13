@@ -3,7 +3,7 @@ import graphviz
 
 from src.lexer import tokenize
 from src.parser import parse
-from src.nfa import ast_to_nfa
+from src.nfa import ast_to_nfa, DOT_SYMBOL
 from src.dfa import nfa_to_dfa
 
 
@@ -32,7 +32,7 @@ def visualize_nfa(nfa, filename="nfa", view=True):
 
     # transitions
     for (from_state, symbol), to_states in nfa.transitions.items():
-        label = "ε" if symbol is None else symbol
+        label = "ε" if symbol is None else ("." if symbol == DOT_SYMBOL else symbol)
         for to_state in to_states:
             dot.edge(str(from_state), str(to_state), label=label)
 
@@ -60,6 +60,10 @@ def visualize_dfa(dfa, filename="dfa", view=True):
     # transitions
     for (from_state, symbol), to_state in dfa.transitions.items():
         dot.edge(str(from_state), str(to_state), label=symbol)
+
+    # wildcard default transitions
+    for from_state, to_state in dfa.default_transitions.items():
+        dot.edge(str(from_state), str(to_state), label=".", style="dashed")
 
     dot.render(filename, cleanup=True, view=view)
     return filename + ".png"

@@ -20,8 +20,10 @@ def match(dfa, string):
         # for each character, follow the one transition
         if (current.id, char) in dfa.transitions:
             next_id = dfa.transitions[(current.id, char)]
-
-            # find the DFAState object with this id
+            current = next(s for s in dfa.states if s.id == next_id)
+        elif current.id in dfa.default_transitions:
+            # wildcard fallback — handles . matching any character
+            next_id = dfa.default_transitions[current.id]
             current = next(s for s in dfa.states if s.id == next_id)
         else:
             # no transition means string is rejected

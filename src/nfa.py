@@ -4,6 +4,9 @@ from dataclasses import dataclass
 
 from src.ast_nodes import *
 
+# sentinel value for wildcard (.) transitions — can't collide with single-char symbols
+DOT_SYMBOL = "__DOT__"
+
 
 @dataclass
 class NFAState:
@@ -100,6 +103,18 @@ def ast_to_nfa(ast: RegexAST) -> NFA:
                 return build(Concat(x, Star(x)))
             case Optional(x):
                 return build(Union(x, Epsilon()))
+            case Dot():
+                s1 = new_state_id()
+                s2 = new_state_id()
+                nfa.add_transition(s1, DOT_SYMBOL, s2)
+                return (s1, s2)
+            case CharClass(chars):
+                # one transition per character, all from same start to same accept
+                s1 = new_state_id()
+                s2 = new_state_id()
+                for c in chars:
+                    nfa.add_transition(s1, c, s2)
+                return (s1, s2)
             case Epsilon():
                 s1 = new_state_id()
                 s2 = new_state_id()

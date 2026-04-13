@@ -32,7 +32,17 @@ class Optional:
     expr: 'RegexAST'
     
 @dataclass
+class Dot:
+    """Matches any single character"""
+    pass
+
+@dataclass
+class CharClass:
+    """Matches any one character in the set"""
+    chars: list[str]
+
+@dataclass
 class Epsilon:
     pass
 
-RegexAST = Char | Concat | Union | Star | Plus | Optional | Epsilon
+RegexAST = Char | Concat | Union | Star | Plus | Optional | Dot | CharClass | Epsilon

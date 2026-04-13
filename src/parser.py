@@ -18,11 +18,58 @@ class Parser:
         self.pos += 1
         return token
     
-    #implements grammar rule: primary --> CHAR | '(' regex ')'
+    def _consume_class_char(self) -> str:
+        """Consume a token inside a character class and return its literal character.
+        Inside [...], everything is a literal — no special meaning for . * + etc."""
+        token = self.consume()
+        match token.type:
+            case TokenType.CHAR:
+                return token.value
+            case TokenType.DOT:
+                return '.'
+            case TokenType.STAR:
+                return '*'
+            case TokenType.PLUS:
+                return '+'
+            case TokenType.OPTIONAL:
+                return '?'
+            case TokenType.UNION:
+                return '|'
+            case TokenType.LPAREN:
+                return '('
+            case TokenType.RPAREN:
+                return ')'
+            case TokenType.LBRACKET:
+                return '['
+            case _:
+                raise SyntaxError(f"Unexpected token in character class: {token}")
+
+    #implements grammar rule: primary --> CHAR | '.' | '[' class ']' | '(' regex ')'
     def parse_primary(self) -> RegexAST:
         if self.current().type == TokenType.CHAR:
             token = self.consume()
             return Char(token.value)
+        elif self.current().type == TokenType.DOT:
+            self.consume()
+            return Dot()
+        elif self.current().type == TokenType.LBRACKET:
+            self.consume()  # consume [
+            chars = []
+            while self.current().type != TokenType.RBRACKET:
+                if self.current().type == TokenType.END:
+                    raise SyntaxError("Unclosed character class")
+                char = self._consume_class_char()
+                # check for range like a-z
+                if (self.current().type == TokenType.CHAR
+                        and self.current().value == '-'
+                        and self.tokens[self.pos + 1].type != TokenType.RBRACKET):
+                    self.consume()  # consume -
+                    end_char = self._consume_class_char()
+                    chars.extend(chr(c) for c in range(ord(char), ord(end_char) + 1))
+                else:
+                    chars.append(char)
+            self.consume()  # consume ]
+            return CharClass(chars)
         elif self.current().type == TokenType.LPAREN:
             self.consume()
             inner = self.parse_regex()
@@ -50,7 +97,7 @@ class Parser:
     #implements grammar rule: concat -> unary+
     def parse_concat(self) -> RegexAST:
         result = self.parse_unary()
-        while self.current().type in (TokenType.CHAR, TokenType.LPAREN):
+        while self.current().type in (TokenType.CHAR, TokenType.LPAREN, TokenType.DOT, TokenType.LBRACKET):
             result = Concat(result, self.parse_unary()) 
         return result
 
